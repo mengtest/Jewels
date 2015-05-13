@@ -1,43 +1,15 @@
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+# Ignore thumbnails created by windows 
+Thumbs.db 
 
-# Folder config file
-Desktop.ini
+# Ignore files build by Visual Studio 
+cocos2d/
+proj.android/
+proj.ios_mac/
+proj.linux/
+proj.win8.1-universal/
+proj.win32/
+proj.wp8-xaml/
+CMakeLists.txt
+.cocos-project.json
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# =========================
-# Operating System Files
-# =========================
-
-# OSX
-# =========================
-
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
-._*
-
-# Files that might appear on external disk
-.Spotlight-V100
-.Trashes
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+bin/

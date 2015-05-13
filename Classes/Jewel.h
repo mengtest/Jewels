@@ -12,12 +12,13 @@ public:
 	bool init(int type);
 
 public:
-	//根据对象的x，y轴值，设置其游戏实际像素位置。网格坐标轴以左上角为原点，x右y下为正轴
-	void setPos(float x, float y) { this->setPosition(x * 40, 480 - y * 40); }  
 	int getType() { return m_type; }
+	void showSelection(); //显现边框
+	void hideSelection(); //隐藏边框
 
 private:
 	int m_type;
+	Sprite* m_selection; //触摸宝石上面显示的边框
 };
 
 #endif

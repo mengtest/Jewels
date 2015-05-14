@@ -1,17 +1,19 @@
 #include "JewelsGrid.h"
 #include "Jewel.h"
 
+JewelsGrid* JewelsGrid::jewelsgrid = nullptr;
+
 JewelsGrid* JewelsGrid::create(int row, int col)
 {
-	auto grid = new JewelsGrid();
-	if (grid && grid->init(row, col))
+	JewelsGrid::jewelsgrid = new JewelsGrid();
+	if (jewelsgrid && jewelsgrid->init(row, col))
 	{
-		grid->autorelease();
-		return grid;
+		jewelsgrid->autorelease();
+		return jewelsgrid;
 	}
 	else
 	{
-		CC_SAFE_DELETE(grid);
+		CC_SAFE_DELETE(jewelsgrid);
 		return nullptr;
 	}
 }
@@ -23,6 +25,10 @@ bool JewelsGrid::init(int row, int col)
 	m_jewelSelected = nullptr;
 	m_row = row;
 	m_col = col;
+	m_canJewelMoveRight = false;
+	m_canJewelMoveUp = false;
+	m_canJewelMoveDown = false;
+	m_canJewelMoveLeft = false;
 
 	//根据行列初始化一个空的宝石容器大小
 	m_JewelsBox.resize(m_row);
@@ -43,6 +49,7 @@ bool JewelsGrid::init(int row, int col)
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
 	listener->onTouchBegan = CC_CALLBACK_2(JewelsGrid::onTouchBegan, this);
+	listener->onTouchMoved = CC_CALLBACK_2(JewelsGrid::onTouchMoved, this);
 	listener->onTouchEnded = CC_CALLBACK_2(JewelsGrid::onTouchEnded, this);
 
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
@@ -54,23 +61,98 @@ bool JewelsGrid::init(int row, int col)
 
 bool JewelsGrid::onTouchBegan(Touch* pTouch, Event* pEvent)
 {
+	m_canJewelMoveUp = true;
+	m_canJewelMoveDown = true;
+	m_canJewelMoveLeft = true;
+	m_canJewelMoveRight = true;
+
 	//获取触摸点的坐标，通过坐标索引宝石
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 	int x = pos.x / GRID_WIDTH;
 	int y = pos.y / GRID_WIDTH;
 
-	if (pos.x < 0 || pos.y < 0 || x > m_row || y > m_col) //没有按在网格上面，无效
+	if (pos.x < 0 || pos.y < 0 || x > m_row - 1 || y > m_col - 1) //没有按在网格上面，无效
 	{
 		return false;
 	}
-	
-	log("touch coor: x=%d,y=%d", x, y);
+
+	//log("touch coor: x=%d,y=%d type=%d", x, y, m_JewelsBox[x][y]->getType());
 
 	//得到当前选中的宝石，并显示选框
 	m_jewelSelected = m_JewelsBox[x][y];
 	m_jewelSelected->showSelection();
 
 	return true;
+}
+
+void JewelsGrid::onTouchMoved(Touch* pTouch, Event*)
+{	
+	auto pos = this->convertToNodeSpace(pTouch->getLocation());
+	int x = pos.x / GRID_WIDTH;
+	int y = pos.y / GRID_WIDTH;
+
+	if (pos.x < 0 || pos.y < 0 || x > m_row - 1 || y > m_col - 1)
+		return;
+
+	log("touch coor: x=%d,y=%d", x, y);
+
+	//判断是否和选中的宝石相邻
+	//上相邻
+	if (m_canJewelMoveUp)
+	{
+		if (x == m_jewelSelected->getX() && y == m_jewelSelected->getY() + 1)
+		{
+			m_jewelSelected->moveUp();
+			m_JewelsBox[x][y]->moveDown();
+			swapJewls(&m_JewelsBox[x][y-1], &m_JewelsBox[x][y]);
+			m_canJewelMoveRight = false;
+			m_canJewelMoveLeft = false;
+			m_canJewelMoveUp = false;
+			m_canJewelMoveDown = true;
+		}
+	}
+	//下相邻
+	if (m_canJewelMoveDown)
+	{
+		if (x == m_jewelSelected->getX() && y == m_jewelSelected->getY() - 1)
+		{
+			m_jewelSelected->moveDown();
+			m_JewelsBox[x][y]->moveUp();
+			swapJewls(&m_JewelsBox[x][y+1], &m_JewelsBox[x][y]);
+			m_canJewelMoveRight = false;
+			m_canJewelMoveLeft = false;
+			m_canJewelMoveUp = true;
+			m_canJewelMoveDown = false;
+		}
+	}
+	//左相邻
+	if (m_canJewelMoveLeft)
+	{
+		if (x == m_jewelSelected->getX() - 1 && y == m_jewelSelected->getY())
+		{
+			m_jewelSelected->moveLeft();
+			m_JewelsBox[x][y]->moveRight();
+			swapJewls(&m_JewelsBox[x+1][y], &m_JewelsBox[x][y]);
+			m_canJewelMoveRight = true;
+			m_canJewelMoveLeft = false;
+			m_canJewelMoveUp = false;
+			m_canJewelMoveDown = false;
+		}
+	}
+	//1.右相邻
+	if (m_canJewelMoveRight)
+	{
+		if (x == m_jewelSelected->getX() + 1 && y == m_jewelSelected->getY())
+		{
+			m_jewelSelected->moveRight();
+			m_JewelsBox[x][y]->moveLeft();
+			swapJewls(&m_JewelsBox[x-1][y], &m_JewelsBox[x][y]);
+			m_canJewelMoveRight = false;
+			m_canJewelMoveLeft = true;
+			m_canJewelMoveUp = false;
+			m_canJewelMoveDown = false;
+		}
+	}
 }
 
 void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
@@ -81,13 +163,20 @@ void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
 	}
 }
 
+void JewelsGrid::swapJewls(Jewel **jewelA, Jewel **jewelB)
+{
+	auto temp = *jewelA;
+	*jewelA = *jewelB;
+	*jewelB = temp;
+}
+
 Jewel* JewelsGrid::addAJewel(int x, int y)
 {
 	//随机创建宝石类型（如果宝石不合法，重新创建直到合法为止），设置其游戏像素位置，加入渲染树
 	Jewel* jewel = nullptr;
 	while(1)
 	{
-		jewel = Jewel::createByType(random(1, 7));
+		jewel = Jewel::createByType(random(1, 7), x, y);
 		
 		if (isJewelLegal(jewel, x, y))
 			break;

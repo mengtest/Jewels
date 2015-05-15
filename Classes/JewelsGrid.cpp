@@ -25,10 +25,6 @@ bool JewelsGrid::init(int row, int col)
 	m_jewelSelected = nullptr;
 	m_row = row;
 	m_col = col;
-	m_canJewelMoveRight = false;
-	m_canJewelMoveUp = false;
-	m_canJewelMoveDown = false;
-	m_canJewelMoveLeft = false;
 
 	//根据行列初始化一个空的宝石容器大小
 	m_JewelsBox.resize(m_row);
@@ -61,11 +57,6 @@ bool JewelsGrid::init(int row, int col)
 
 bool JewelsGrid::onTouchBegan(Touch* pTouch, Event* pEvent)
 {
-	m_canJewelMoveUp = true;
-	m_canJewelMoveDown = true;
-	m_canJewelMoveLeft = true;
-	m_canJewelMoveRight = true;
-
 	//获取触摸点的坐标，通过坐标索引宝石
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 	int x = pos.x / GRID_WIDTH;
@@ -78,11 +69,9 @@ bool JewelsGrid::onTouchBegan(Touch* pTouch, Event* pEvent)
 
 	log("touch coor: x=%d,y=%d type=%d", m_JewelsBox[x][y]->getX(), m_JewelsBox[x][y]->getY(), m_JewelsBox[x][y]->getType());
 
-	m_startTouchCoor = Vec2(x, y);
-
 	//得到当前选中的宝石，并显示选框
 	m_jewelSelected = m_JewelsBox[x][y];
-	m_jewelSelected->showSelection();
+	m_startJewel = m_JewelsBox[x][y];
 
 	return true;
 }
@@ -94,8 +83,8 @@ void JewelsGrid::onTouchMoved(Touch* pTouch, Event* pEvent)
 		return;
 
 	//开始触摸时的坐标
-	int startX = m_startTouchCoor.x;
-	int startY = m_startTouchCoor.y;
+	int startX = m_startJewel->getX();
+	int startY = m_startJewel->getY();
 
 	//触摸点的坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
@@ -103,7 +92,7 @@ void JewelsGrid::onTouchMoved(Touch* pTouch, Event* pEvent)
 	int touchY = pos.y / GRID_WIDTH;
 
 	//坐标touchX,touchY是否出界，是否和开始触摸坐标一致
-	if (pos.x < 0 || pos.y < 0 || touchX > m_row - 1 || touchX > m_col - 1 || Vec2(touchX, touchY) == m_startTouchCoor) 
+	if (pos.x < 0 || pos.y < 0 || touchX > m_row - 1 || touchY > m_col - 1 || Vec2(touchX, touchY) == Vec2(startX, startY)) 
 	{
 		return;
 	}
@@ -111,50 +100,138 @@ void JewelsGrid::onTouchMoved(Touch* pTouch, Event* pEvent)
 	//判断开始坐标与触摸坐标是否相隔一个单位
 	if (abs(startX - touchX) + abs(startY - touchY) != 1)
 	{
-		//log("touch pos not border");
+		//log("touch pos not on border");
 		return;
 	}
 
-	auto startJewel = m_JewelsBox[startX][startY];
-	auto touchJewel = m_JewelsBox[touchX][touchY];
+	//设置已选宝石指针为空
+	m_jewelSelected = nullptr;
+
+	m_touchJewel = m_JewelsBox[touchX][touchY];
 
 	//交换宝石坐标以及指针
-	swapJewls(startJewel, touchJewel, &m_JewelsBox[startX][startY], &m_JewelsBox[touchX][touchY]);
+	swapJewls(m_startJewel, m_touchJewel, &m_JewelsBox[startX][startY], &m_JewelsBox[touchX][touchY]);
 
-	/*
-	if (!canCrush())
-	{
-		//如果不能消除
-		m_jewelSelected = nullptr;
-		swapJewls(startJewel, touchJewel, &m_JewelsBox[startX][startY], &m_JewelsBox[touchX][touchY]);
-	}
-	*/
+	schedule(schedule_selector(JewelsGrid::onCrush), 0, 0, 0.3);
 }
 
 void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
 {
-	if (m_jewelSelected)
-	{
-		m_jewelSelected->hideSelection(); //隐藏选框
-	}
+	m_jewelSelected = nullptr;
 }
 
 bool JewelsGrid::canCrush()
 {
-	return false;
+	m_crushJewelBox.clear(); //清空消除容器
+
+	int count = 0; //连续数
+	Jewel *JewelBegin = nullptr; //左边第一个宝石
+	Jewel *JewelNext = nullptr;
+
+	//遍历每一列
+	for (int i = 0; i < m_col; i++) 
+	{
+		for (int j = 0; j < m_row - 1;)
+		{
+			count = 1;
+			JewelBegin = m_JewelsBox[i][j];
+			JewelNext = m_JewelsBox[i][j + 1];
+			 //如果是同类型
+			while (JewelBegin->getType() == JewelNext->getType())
+			{
+				count++;
+				int nextIndex = j + count;
+				if (nextIndex > m_row - 1)
+					break;
+				JewelNext = m_JewelsBox[i][nextIndex];
+			}
+			if (count >= 3)
+			{
+				for (int n = 0; n < count; n++)
+					m_crushJewelBox.pushBack(m_JewelsBox[i][j+n]);
+			}
+			j += count;
+		}
+	}
+
+	//遍历每一行
+	for (int i = 0; i < m_row; i++) 
+	{
+		for (int j = 0; j < m_col - 1;)
+		{
+			count = 1;
+			JewelBegin = m_JewelsBox[j][i];
+			JewelNext = m_JewelsBox[j+1][i];
+			 //如果是同类型
+			while (JewelBegin->getType() == JewelNext->getType())
+			{
+				count++;
+				int nextIndex = j + count;
+				if (nextIndex > m_col - 1)
+					break;
+				JewelNext = m_JewelsBox[nextIndex][i];
+			}
+			if (count >= 3)
+			{
+				for (int n = 0; n < count; n++)
+					m_crushJewelBox.pushBack(m_JewelsBox[j+n][i]);
+			}
+			j += count;
+		}
+	}
+
+	if (!m_crushJewelBox.empty())
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void JewelsGrid::onCrush(float dt)
+{
+	if (!canCrush())
+	{
+		log("cant Crush!");
+
+		//如果不能消除
+		int startX = m_startJewel->getX();
+		int startY = m_startJewel->getY();
+
+		int touchX = m_touchJewel->getX();
+		int touchY = m_touchJewel->getY();
+
+		swapJewls(m_startJewel, m_touchJewel, &m_JewelsBox[startX][startY], &m_JewelsBox[touchX][touchY]);
+	}
+	else
+	{
+		log("Crush!");
+	}
 }
 
 void JewelsGrid::moveJewelToNewPos(Jewel* jewel)
 {
-	auto move = MoveTo::create(0.2, Vec2(jewel->getX() * GRID_WIDTH, jewel->getY() * GRID_WIDTH));
-	jewel->runAction(move);
+	auto call1 = CallFunc::create([this]()
+	{
+		//开始移动时暂停触摸
+		Director::getInstance()->getEventDispatcher()->pauseEventListenersForTarget(this);
+	});
+	auto move = MoveTo::create(.2f, Vec2(jewel->getX() * GRID_WIDTH, jewel->getY() * GRID_WIDTH));
+	auto call2 = CallFunc::create([this]()
+	{
+		//移动完后开启触摸
+		Director::getInstance()->getEventDispatcher()->resumeEventListenersForTarget(this);
+	});
+	jewel->runAction(Sequence::create(call1, move, call2, nullptr));
 }
 
 void JewelsGrid::swapJewls(Jewel *jewelA, Jewel *jewelB, Jewel** AInBoxADD, Jewel** BInBoxADD)
 {
 	//1.交换宝石坐标
-	//2.宝石移动到新的位置
-	//3.交换宝石容器内的宝石指针
+	//2.交换宝石容器内的宝石指针
+	//3.宝石移动到新的位置
 	auto tempX = jewelA->getX();
 	jewelA->setX(jewelB->getX());
 	jewelB->setX(tempX);
@@ -163,12 +240,13 @@ void JewelsGrid::swapJewls(Jewel *jewelA, Jewel *jewelB, Jewel** AInBoxADD, Jewe
 	jewelA->setY(jewelB->getY());
 	jewelB->setY(tempY);
 
-	moveJewelToNewPos(jewelA);
-	moveJewelToNewPos(jewelB);
-
 	auto temp = *AInBoxADD;
 	*AInBoxADD = *BInBoxADD;
 	*BInBoxADD = temp;
+
+	//该函数将在移动完后开启触摸
+	moveJewelToNewPos(jewelA);
+	moveJewelToNewPos(jewelB);
 }
 
 Jewel* JewelsGrid::addAJewel(int x, int y)

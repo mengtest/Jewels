@@ -30,6 +30,7 @@ private:
 	void swapJewls(Jewel *jewelA, Jewel *jewelB, Jewel** AInBoxADD, Jewel** BInBoxADD); //交换两个宝石的存储数据，由于交换的是指针，所以还需要用二级指针
 	void moveJewelToNewPos(Jewel* jewel); //移动到新位置
 
+	void onCrush(float dt);
 	bool canCrush();
 
 private:
@@ -47,15 +48,12 @@ private:
 	int m_row; //行数
 	int m_col; //列数
 
-	Vec2 m_startTouchCoor; //开始触摸时候的坐标
-
 	Jewel* m_jewelSelected; //当前选中的宝石
-	bool m_canJewelMoveUp; //标明是否已开始移动宝石,为了防止连续触摸而让宝石连续移动，因为一次只能移动一格
-	bool m_canJewelMoveDown;
-	bool m_canJewelMoveLeft;
-	bool m_canJewelMoveRight;
+	Jewel* m_startJewel;
+	Jewel* m_touchJewel;
 
 	vector<vector<Jewel*>> m_JewelsBox; //存放宝石对象的容器
+	Vector<Jewel*> m_crushJewelBox; //准备消除的宝石容器
 };
 
 #endif

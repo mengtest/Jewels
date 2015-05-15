@@ -21,14 +21,6 @@ public:
 	void showSelection(); //显现边框
 	void hideSelection(); //隐藏边框
 
-	//上下左右移动一格
-	void moveToNewPos();
-	void moveDown();
-	void moveLeft();
-	void moveRight();
-
-	void moveBack();
-
 private:
 	int m_type;
 	Sprite* m_selection; //触摸宝石上面显示的边框
@@ -36,8 +28,6 @@ private:
 	//坐标
 	int m_x;
 	int m_y;
-
-	Sequence* m_moveback; //返回移动
 };
 
 #endif

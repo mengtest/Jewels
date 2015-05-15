@@ -76,7 +76,9 @@ bool JewelsGrid::onTouchBegan(Touch* pTouch, Event* pEvent)
 		return false;
 	}
 
-	//log("touch coor: x=%d,y=%d type=%d", x, y, m_JewelsBox[x][y]->getType());
+	log("touch coor: x=%d,y=%d type=%d", m_JewelsBox[x][y]->getX(), m_JewelsBox[x][y]->getY(), m_JewelsBox[x][y]->getType());
+
+	m_startTouchCoor = Vec2(x, y);
 
 	//得到当前选中的宝石，并显示选框
 	m_jewelSelected = m_JewelsBox[x][y];
@@ -85,74 +87,48 @@ bool JewelsGrid::onTouchBegan(Touch* pTouch, Event* pEvent)
 	return true;
 }
 
-void JewelsGrid::onTouchMoved(Touch* pTouch, Event*)
+void JewelsGrid::onTouchMoved(Touch* pTouch, Event* pEvent)
 {	
-	auto pos = this->convertToNodeSpace(pTouch->getLocation());
-	int x = pos.x / GRID_WIDTH;
-	int y = pos.y / GRID_WIDTH;
-
-	if (pos.x < 0 || pos.y < 0 || x > m_row - 1 || y > m_col - 1)
+	//如果没有选择宝石，那么返回
+	if (!m_jewelSelected)
 		return;
 
-	log("touch coor: x=%d,y=%d", x, y);
+	//开始触摸时的坐标
+	int startX = m_startTouchCoor.x;
+	int startY = m_startTouchCoor.y;
 
-	//判断是否和选中的宝石相邻
-	//上相邻
-	if (m_canJewelMoveUp)
+	//触摸点的坐标
+	auto pos = this->convertToNodeSpace(pTouch->getLocation());
+	int touchX = pos.x / GRID_WIDTH;
+	int touchY = pos.y / GRID_WIDTH;
+
+	//坐标touchX,touchY是否出界，是否和开始触摸坐标一致
+	if (pos.x < 0 || pos.y < 0 || touchX > m_row - 1 || touchX > m_col - 1 || Vec2(touchX, touchY) == m_startTouchCoor) 
 	{
-		if (x == m_jewelSelected->getX() && y == m_jewelSelected->getY() + 1)
-		{
-			m_jewelSelected->moveUp();
-			m_JewelsBox[x][y]->moveDown();
-			swapJewls(&m_JewelsBox[x][y-1], &m_JewelsBox[x][y]);
-			m_canJewelMoveRight = false;
-			m_canJewelMoveLeft = false;
-			m_canJewelMoveUp = false;
-			m_canJewelMoveDown = true;
-		}
+		return;
 	}
-	//下相邻
-	if (m_canJewelMoveDown)
+
+	//判断开始坐标与触摸坐标是否相隔一个单位
+	if (abs(startX - touchX) + abs(startY - touchY) != 1)
 	{
-		if (x == m_jewelSelected->getX() && y == m_jewelSelected->getY() - 1)
-		{
-			m_jewelSelected->moveDown();
-			m_JewelsBox[x][y]->moveUp();
-			swapJewls(&m_JewelsBox[x][y+1], &m_JewelsBox[x][y]);
-			m_canJewelMoveRight = false;
-			m_canJewelMoveLeft = false;
-			m_canJewelMoveUp = true;
-			m_canJewelMoveDown = false;
-		}
+		//log("touch pos not border");
+		return;
 	}
-	//左相邻
-	if (m_canJewelMoveLeft)
+
+	auto startJewel = m_JewelsBox[startX][startY];
+	auto touchJewel = m_JewelsBox[touchX][touchY];
+
+	//交换宝石坐标以及指针
+	swapJewls(startJewel, touchJewel, &m_JewelsBox[startX][startY], &m_JewelsBox[touchX][touchY]);
+
+	/*
+	if (!canCrush())
 	{
-		if (x == m_jewelSelected->getX() - 1 && y == m_jewelSelected->getY())
-		{
-			m_jewelSelected->moveLeft();
-			m_JewelsBox[x][y]->moveRight();
-			swapJewls(&m_JewelsBox[x+1][y], &m_JewelsBox[x][y]);
-			m_canJewelMoveRight = true;
-			m_canJewelMoveLeft = false;
-			m_canJewelMoveUp = false;
-			m_canJewelMoveDown = false;
-		}
+		//如果不能消除
+		m_jewelSelected = nullptr;
+		swapJewls(startJewel, touchJewel, &m_JewelsBox[startX][startY], &m_JewelsBox[touchX][touchY]);
 	}
-	//1.右相邻
-	if (m_canJewelMoveRight)
-	{
-		if (x == m_jewelSelected->getX() + 1 && y == m_jewelSelected->getY())
-		{
-			m_jewelSelected->moveRight();
-			m_JewelsBox[x][y]->moveLeft();
-			swapJewls(&m_JewelsBox[x-1][y], &m_JewelsBox[x][y]);
-			m_canJewelMoveRight = false;
-			m_canJewelMoveLeft = true;
-			m_canJewelMoveUp = false;
-			m_canJewelMoveDown = false;
-		}
-	}
+	*/
 }
 
 void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
@@ -163,11 +139,36 @@ void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
 	}
 }
 
-void JewelsGrid::swapJewls(Jewel **jewelA, Jewel **jewelB)
+bool JewelsGrid::canCrush()
 {
-	auto temp = *jewelA;
-	*jewelA = *jewelB;
-	*jewelB = temp;
+	return false;
+}
+
+void JewelsGrid::moveJewelToNewPos(Jewel* jewel)
+{
+	auto move = MoveTo::create(0.2, Vec2(jewel->getX() * GRID_WIDTH, jewel->getY() * GRID_WIDTH));
+	jewel->runAction(move);
+}
+
+void JewelsGrid::swapJewls(Jewel *jewelA, Jewel *jewelB, Jewel** AInBoxADD, Jewel** BInBoxADD)
+{
+	//1.交换宝石坐标
+	//2.宝石移动到新的位置
+	//3.交换宝石容器内的宝石指针
+	auto tempX = jewelA->getX();
+	jewelA->setX(jewelB->getX());
+	jewelB->setX(tempX);
+
+	auto tempY = jewelA->getY();
+	jewelA->setY(jewelB->getY());
+	jewelB->setY(tempY);
+
+	moveJewelToNewPos(jewelA);
+	moveJewelToNewPos(jewelB);
+
+	auto temp = *AInBoxADD;
+	*AInBoxADD = *BInBoxADD;
+	*BInBoxADD = temp;
 }
 
 Jewel* JewelsGrid::addAJewel(int x, int y)

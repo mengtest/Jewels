@@ -21,9 +21,10 @@ bool Jewel::init(int type, int x, int y)
 {
 	Sprite::init();
 
-	this->m_type = type;
-	this->m_x = x;
-	this->m_y = y;
+	m_type = type;
+	m_x = x;
+	m_y = y;
+	m_moveback = nullptr;
 	
 	//根据资源名初始化纹理，该资源应该在游戏主场景里加载完毕的
 	char name[100] = {0};
@@ -53,17 +54,16 @@ void Jewel::hideSelection()
 	m_selection->runAction(fadeout);
 }
 
-#define MOVE_SPEED 0.2
-void Jewel::moveUp()
+void Jewel::moveBack()
 {
-	if (this->m_y < JewelsGrid::sharedJewelsGrid()->getCol() - 1)
-	{
+	if (m_moveback)
+		this->runAction(m_moveback);
+}
+
+#define MOVE_SPEED 0.2
+void Jewel::moveToNewPos()
+{
 		auto move = MoveBy::create(MOVE_SPEED, Vec2(0, GRID_WIDTH));
-		auto call = CallFunc::create([this](){
-			this->m_y++;
-		});
-		this->runAction(Sequence::create(move, call, nullptr));
-	}
 }
 
 void Jewel::moveDown()

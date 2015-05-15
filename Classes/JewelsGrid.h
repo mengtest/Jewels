@@ -27,7 +27,10 @@ private:
 
 	//根据对象的x，y轴值，设置其游戏实际像素位置。网格坐标轴以左上角为原点，x右y下为正轴
 	void setJewelPixPos(Jewel* jewel, float x, float y);
-	void swapJewls(Jewel **jewelA, Jewel **jewelB); //交换两个宝石的存储数据，由于交换的是指针，所以还需要用二级指针
+	void swapJewls(Jewel *jewelA, Jewel *jewelB, Jewel** AInBoxADD, Jewel** BInBoxADD); //交换两个宝石的存储数据，由于交换的是指针，所以还需要用二级指针
+	void moveJewelToNewPos(Jewel* jewel); //移动到新位置
+
+	bool canCrush();
 
 private:
 	bool onTouchBegan(Touch*, Event*);
@@ -43,6 +46,8 @@ public:
 private:
 	int m_row; //行数
 	int m_col; //列数
+
+	Vec2 m_startTouchCoor; //开始触摸时候的坐标
 
 	Jewel* m_jewelSelected; //当前选中的宝石
 	bool m_canJewelMoveUp; //标明是否已开始移动宝石,为了防止连续触摸而让宝石连续移动，因为一次只能移动一格

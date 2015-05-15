@@ -15,15 +15,19 @@ public:
 	int getType() { return m_type; }
 	int getX() { return m_x; }
 	int getY() { return m_y; }
+	void setX(int x) { m_x = x; }
+	void setY(int y) { m_y = y; }
 
 	void showSelection(); //显现边框
 	void hideSelection(); //隐藏边框
 
 	//上下左右移动一格
-	void moveUp();
+	void moveToNewPos();
 	void moveDown();
 	void moveLeft();
 	void moveRight();
+
+	void moveBack();
 
 private:
 	int m_type;
@@ -32,6 +36,8 @@ private:
 	//坐标
 	int m_x;
 	int m_y;
+
+	Sequence* m_moveback; //返回移动
 };
 
 #endif

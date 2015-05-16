@@ -24,6 +24,9 @@ bool Jewel::init(int type, int x, int y)
 	m_type = type;
 	m_x = x;
 	m_y = y;
+	m_isSwaping = false;
+	m_isCrushOver = true;
+	m_isMoveOver = true;
 	
 	//根据资源名初始化纹理，该资源应该在游戏主场景里加载完毕的
 	char name[100] = {0};
@@ -51,4 +54,15 @@ void Jewel::hideSelection()
 {
 	auto fadeout = FadeOut::create(0.2);
 	m_selection->runAction(fadeout);
+}
+
+void Jewel::crush()
+{
+	m_isCrushOver = false;
+	auto action = FadeOut::create(0.2);
+	auto call = CallFunc::create([this](){
+		this->removeFromParent();
+		m_isCrushOver = true;
+	});
+	this->runAction(Sequence::create(action, call, nullptr));
 }

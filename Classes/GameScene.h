@@ -5,8 +5,6 @@
 
 USING_NS_CC;
 
-class Jewel;
-
 class GameScene : public Layer
 {
 public:

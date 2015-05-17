@@ -15,14 +15,16 @@ public:
 	int getType() { return m_type; }
 	int getX() { return m_x; }
 	int getY() { return m_y; }
-	bool getCrushState() { return m_isCrushOver; }
-	bool getMoveOverState() { return m_isMoveOver; }
-
+	bool getCrushOverState() { return m_isCrushOver; }
+	bool getFreshOverState() { return m_isFreshOver; }
+	bool getIsEmpty() { return m_isEmpty; }
 	bool getSwapingState() { return m_isSwaping; }
+
 	void setX(int x) { m_x = x; }
 	void setY(int y) { m_y = y; }
 	void setSwapingState(bool state) { m_isSwaping = state; }
-	void setMoveOverState(bool state) { m_isMoveOver = state; }
+	void setFreshOverState(bool state) { m_isFreshOver = state; }
+	void setIsEmpty(bool state) { m_isEmpty = state; }
 
 	void showSelection(); //显现边框
 	void hideSelection(); //隐藏边框
@@ -38,8 +40,9 @@ private:
 	int m_y;
 
 	bool m_isSwaping; //是否正在交换
+	bool m_isEmpty; //该格子是否空
 	bool m_isCrushOver; //是否消除完成
-	bool m_isMoveOver; 
+	bool m_isFreshOver; 
 };
 
 #endif

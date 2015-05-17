@@ -26,7 +26,8 @@ bool Jewel::init(int type, int x, int y)
 	m_y = y;
 	m_isSwaping = false;
 	m_isCrushOver = true;
-	m_isMoveOver = true;
+	m_isFreshOver = true;
+	m_isEmpty= false;
 	
 	//根据资源名初始化纹理，该资源应该在游戏主场景里加载完毕的
 	char name[100] = {0};

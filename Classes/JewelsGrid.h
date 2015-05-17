@@ -9,6 +9,8 @@ using namespace std;
 
 #define GRID_WIDTH 40 //一个格子像素为40
 #define MOVE_SPEED 0.2 //宝石移动一格速度
+#define FIRST_JEWEL_ID 1
+#define LAST_JEWEL_ID 6
 
 class Jewel;
 
@@ -31,14 +33,18 @@ private:
 	void swapJewls(Jewel *jewelA, Jewel *jewelB); //交换两个宝石
 	void moveJewelToNewPos(Jewel* jewel); //移动到新位置
 
-	void refreshJewelsGrid(float dt);
-	void refreshJewelsToNewPos(int startX, int startY, int count);
+	void refreshJewelsGrid();
+	void refreshJewelsToNewPos(int startX);
 
-	void onCrush(float dt);  //准备crush
-	bool canCrush(); //判断能否crush
+	void stateController(float dt);
+
+	void canCrush(); //判断能否crush
 	void goCrush(); //开始cursh
 
-	void onJewelSwaping(float dt);
+	void onJewelsSwaping(float dt);
+	void onJewelsCrushing(float dt);
+	void onJewelsFreshing(float dt);
+	void onJewelsSwapingBack(float dt);
 
 private:
 	bool onTouchBegan(Touch*, Event*);
@@ -55,7 +61,14 @@ private:
 	int m_row; //行数
 	int m_col; //列数
 
-	bool m_isOnCrush;
+	bool m_isSwapOver;
+	bool m_isFreshOver;
+	bool m_isCrushOver;
+
+	int m_state;
+
+	bool m_canCrush;
+	bool m_canSwap;
 
 	Jewel* m_jewelSelected; //当前选中的宝石
 	Jewel* m_startJewel;

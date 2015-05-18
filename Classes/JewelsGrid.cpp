@@ -20,9 +20,11 @@ bool JewelsGrid::init(int row, int col)
 {
 	Node::init();
 
-	m_jewelSelected = nullptr;
 	m_row = row;
 	m_col = col;
+
+	m_jewelSelected = nullptr;
+	m_jewelSwapped = nullptr;
 
 	m_isSwapOver = true;
 	m_isFreshOver = true;
@@ -33,13 +35,14 @@ bool JewelsGrid::init(int row, int col)
 	for (auto &vec : m_JewelsBox)
 		vec.resize(m_col);
 
-	//创建宝石
+	//1.根据布局大小创建出宝石阵列
+	//2.布局坐标以左下角为原点，x右y上为正方向
 	for (int x = 0; x < m_col; x++)
 	{
 		for (int y = 0; y < m_row; y++)
 		{
-			//保存对象指针
-			m_JewelsBox[x][y] = addAJewel(x, y); 
+			//创建一颗宝石，并保存其指针到宝石盒子中
+			m_JewelsBox[x][y] = createAJewel(x, y); 
 		}
 	}
 
@@ -48,7 +51,6 @@ bool JewelsGrid::init(int row, int col)
 	listener->setSwallowTouches(true);
 	listener->onTouchBegan = CC_CALLBACK_2(JewelsGrid::onTouchBegan, this);
 	listener->onTouchMoved = CC_CALLBACK_2(JewelsGrid::onTouchMoved, this);
-	listener->onTouchEnded = CC_CALLBACK_2(JewelsGrid::onTouchEnded, this);
 
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
@@ -56,71 +58,134 @@ bool JewelsGrid::init(int row, int col)
 	return true;
 }
 
+Jewel* JewelsGrid::createAJewel(int x, int y)
+{
+	//1.根据布局坐标创建一颗宝石，类型随机
+	//2.判断该宝石是否合法（不会三消）
+	//3.设置该宝石的世界坐标
+	//4.将该宝石加入渲染节点
+	Jewel* jewel = nullptr;
+
+	while(1)
+	{
+		jewel = Jewel::createByType(random(FIRST_JEWEL_ID, LAST_JEWEL_ID), x, y);
+		
+		if (isJewelLegal(jewel, x, y))
+			break;
+	}	
+
+	setJewelPixPos(jewel, x, y);
+	addChild(jewel);
+
+	//log("add a jewel!---type:%d---x:%d---y:%d", jewel->getType(), x, y);
+
+	return jewel;
+}
+
+bool JewelsGrid::isJewelLegal(Jewel* jewel, int x, int y)
+{
+	//1.分别判断新加入的宝石在x轴y轴方向是否会三消
+	//2.由于是从正方向加入宝石，因此只需往负方向判断
+	//3.x，y坐标小于等于1不必判断
+	//4.两轴同时合法方合法
+	bool isXLegal = true;
+	bool isYLegal = true;
+
+	if (x > 1)
+	{
+		//向x轴负方向分别比较两位，如果宝石类型都一样，那么表示三消，该宝石不合法
+		if (jewel->getType() == m_JewelsBox[x-1][y]->getType() && 
+			jewel->getType() == m_JewelsBox[x-2][y]->getType()
+			)
+		{
+			isXLegal = false;
+		}
+		else
+			isXLegal = true;
+	}
+	
+	if (y > 1)
+	{
+		//向y轴负方向分别比较两位，如果宝石类型都一样，那么表示三消，该宝石不合法
+		if (jewel->getType() == m_JewelsBox[x][y-1]->getType() && 
+			jewel->getType() == m_JewelsBox[x][y-2]->getType())
+		{
+			isYLegal = false;
+		}
+		else
+			isYLegal = true;
+	}
+
+	return isXLegal && isYLegal;
+}
+
+void JewelsGrid::setJewelPixPos(Jewel* jewel, float x, float y)
+{
+	jewel->setPosition(x * GRID_WIDTH, y * GRID_WIDTH); 
+}
 
 bool JewelsGrid::onTouchBegan(Touch* pTouch, Event* pEvent)
 {
-	//获取触摸点的坐标，通过坐标索引宝石
+	//将触摸点的坐标转化为模型坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
-	int x = pos.x / GRID_WIDTH;
-	int y = pos.y / GRID_WIDTH;
+	
+	//是否有按在宝石布局上
+	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos))
+	{
+		//得到布局坐标
+		int x = pos.x / GRID_WIDTH;
+		int y = pos.y / GRID_WIDTH;
 
-	if (pos.x < 0 || pos.y < 0 || x > m_row - 1 || y > m_col - 1) //没有按在网格上面，无效
+		//得到当前选中的宝石
+		m_jewelSelected = m_JewelsBox[x][y];
+
+		//log("touch coordinate: x=%d,y=%d jewel's type:%d", x, y, m_jewelSelected->getType());
+
+		return true;
+	}
+	else
 	{
 		return false;
 	}
-
-	//log("touch coor: x=%d,y=%d type=%d", m_JewelsBox[x][y]->getX(), m_JewelsBox[x][y]->getY(), m_JewelsBox[x][y]->getType());
-
-	//得到当前选中的宝石
-	m_jewelSelected = m_JewelsBox[x][y];
-	m_startJewel = m_JewelsBox[x][y];
-
-	return true;
 }
 
 void JewelsGrid::onTouchMoved(Touch* pTouch, Event* pEvent)
-{	
+{
 	//如果没有选择宝石，那么返回
 	if (!m_jewelSelected)
+	{
 		return;
+	}
 
-	//开始触摸时的坐标
-	int startX = m_startJewel->getX();
-	int startY = m_startJewel->getY();
+	//已选择宝石的布局坐标
+	int startX = m_jewelSelected->getX();
+	int startY = m_jewelSelected->getY();
 
-	//触摸点的坐标
+	//触摸点的布局坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 	int touchX = pos.x / GRID_WIDTH;
 	int touchY = pos.y / GRID_WIDTH;
 
-	//坐标touchX,touchY是否出界，是否和开始触摸坐标一致
-	if (pos.x < 0 || pos.y < 0 || touchX > m_row - 1 || touchY > m_col - 1 || Vec2(touchX, touchY) == Vec2(startX, startY)) 
+	//如果触摸点不在布局内，或者触摸点布局坐标和已选宝石布局坐标一样，那么返回
+	if (!Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos) || Vec2(touchX, touchY) == Vec2(startX, startY)) 
 	{
 		return;
 	}
 
-	//判断开始坐标与触摸坐标是否相隔一个单位
+	//判断已选宝石的布局坐标与触摸点的布局坐标是否相隔一个单位
 	if (abs(startX - touchX) + abs(startY - touchY) != 1)
 	{
 		//log("touch pos not on border");
 		return;
 	}
-	else
-	{
-		//设置已选宝石指针为空
-		m_jewelSelected = nullptr;
 
-		m_touchJewel = m_JewelsBox[touchX][touchY];
+	//余下的情况，触摸点上面的宝石就是欲进行交换的宝石
+	//通过坐标索引，获取欲交换的宝石
+	m_jewelSwapped = m_JewelsBox[touchX][touchY];
 
-		//交换宝石坐标以及指针
-		swapJewels(m_startJewel, m_touchJewel);
-		schedule(schedule_selector(JewelsGrid::onJewelsSwaping));		
-	}
-}
-
-void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
-{
-	m_jewelSelected = nullptr;
+	//交换宝石，开启交换状态捕捉函数（在交换完成后，判断是否可以消除）
+	swapJewels(m_jewelSelected, m_jewelSwapped);
+	schedule(schedule_selector(JewelsGrid::onJewelsSwaping));
 }
 
 void JewelsGrid::onJewelsFreshing(float dt)
@@ -164,7 +229,7 @@ void JewelsGrid::onJewelsCrushing(float dt)
 
 void JewelsGrid::onJewelsSwaping(float dt)
 {
-	if (m_startJewel->getSwapingState() || m_touchJewel->getSwapingState())
+	if (m_jewelSelected->getSwapingState() || m_jewelSwapped->getSwapingState())
 	{
 		return;
 	}
@@ -181,7 +246,7 @@ void JewelsGrid::onJewelsSwaping(float dt)
 
 void JewelsGrid::onJewelsSwapingBack(float dt)
 {
-	if (m_startJewel->getSwapingState() || m_touchJewel->getSwapingState())
+	if (m_jewelSelected->getSwapingState() || m_jewelSwapped->getSwapingState())
 	{
 		return;
 	}
@@ -190,6 +255,8 @@ void JewelsGrid::onJewelsSwapingBack(float dt)
 		log("swap back!");
 
 		_eventDispatcher->resumeEventListenersForTarget(this);
+
+		m_jewelSelected = nullptr;
 
 		unschedule(schedule_selector(JewelsGrid::onJewelsSwapingBack));
 	}
@@ -388,14 +455,13 @@ void JewelsGrid::canCrush()
 			}
 			x += count;
 		}
-	}
+	}	
 
 	if (!m_crushJewelBox.empty())
 	{
 		log("yes,crush!");
 
-		m_startJewel = nullptr;
-		m_touchJewel = nullptr;
+		m_jewelSelected = nullptr;
 
 		goCrush();
 		schedule(schedule_selector(JewelsGrid::onJewelsCrushing));
@@ -403,9 +469,10 @@ void JewelsGrid::canCrush()
 	else
 	{
 		log("no, cant crush!");
-		if (m_startJewel && m_startJewel)
+
+		if (m_jewelSelected)
 		{
-			swapJewels(m_startJewel, m_touchJewel);
+			swapJewels(m_jewelSelected, m_jewelSwapped);
 			schedule(schedule_selector(JewelsGrid::onJewelsSwapingBack));
 		}
 		else
@@ -413,67 +480,4 @@ void JewelsGrid::canCrush()
 			_eventDispatcher->resumeEventListenersForTarget(this);
 		}
 	}
-}
-
-Jewel* JewelsGrid::addAJewel(int x, int y)
-{
-	//随机创建宝石类型（如果宝石不合法，重新创建直到合法为止），设置其游戏像素位置，加入渲染树
-	Jewel* jewel = nullptr;
-	while(1)
-	{
-		jewel = Jewel::createByType(random(FIRST_JEWEL_ID, LAST_JEWEL_ID), x, y);
-		
-		if (isJewelLegal(jewel, x, y))
-			break;
-	}	
-
-	setJewelPixPos(jewel, x, y);
-	addChild(jewel);
-
-	//log("add a jewel!---type:%d---x:%d---y:%d", jewel->getType(), x, y);
-
-	return jewel;
-}
-
-void JewelsGrid::setJewelPixPos(Jewel* jewel, float x, float y)
-{
-	jewel->setPosition(x * GRID_WIDTH, y * GRID_WIDTH); 
-}
-	
-bool JewelsGrid::isJewelLegal(Jewel* jewel, int x, int y)
-{
-	if (!jewel) return false;
-
-	//向后向下比较是否三连
-	//如果x坐标或者y坐标小于等于1，那么该宝石在此轴肯定是合法的，但要两轴同时合法才行
-	bool isBackLegal = true;
-	bool isUpLegal = true;
-
-	if (x > 1)
-	{
-		//向后分别比较两位，如果宝石类型不一样，那么返回合法
-		if (jewel->getType() == m_JewelsBox[x-1][y]->getType() && 
-			jewel->getType() == m_JewelsBox[x-2][y]->getType() &&
-			m_JewelsBox[x-2][y]->getType() == m_JewelsBox[x-1][y]->getType())
-		{
-			isBackLegal = false;
-		}
-		else
-			isBackLegal = true;
-	}
-	
-	if (y > 1)
-	{
-		//向下分别比较两位，如果宝石类型不一样，那么返回合法
-		if (jewel->getType() == m_JewelsBox[x][y-1]->getType() && 
-			jewel->getType() == m_JewelsBox[x][y-2]->getType() &&
-			m_JewelsBox[x][y-1]->getType() == m_JewelsBox[x][y-2]->getType())
-		{
-			isUpLegal = false;
-		}
-		else
-			isUpLegal = true;
-	}
-
-	return isBackLegal && isUpLegal;
 }

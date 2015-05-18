@@ -15,6 +15,7 @@ using namespace std;
 class Jewel;
 
 //网格类，包含了宝石在网格内的逻辑
+//该网格布局坐标以左下角为原点，x左y上为正方向
 class JewelsGrid : public Node
 {
 public:
@@ -23,8 +24,8 @@ public:
 
 private:
 	//关于创建宝石的方法
-	Jewel* addAJewel(int x, int y);
-	bool isJewelLegal(Jewel* jewel, int x, int y);
+	Jewel* createAJewel(int x, int y); //根据布局坐标创建一个宝石
+	bool isJewelLegal(Jewel* jewel, int x, int y); //判断创建的宝石是否不会三消（即合法）
 	void setJewelPixPos(Jewel* jewel, float x, float y); //设置其游戏实际像素位置。网格坐标轴以左下角为原点，x右y上为正轴
 
 	//关于操作宝石的方法
@@ -33,6 +34,11 @@ private:
 
 	void refreshJewelsGrid();
 	void refreshJewelsToNewPos(int startX);
+
+private:
+	//事件响应部分
+	bool onTouchBegan(Touch*, Event*);
+	void onTouchMoved(Touch*, Event*);
 
 private:
 	//游戏逻辑部分
@@ -45,12 +51,6 @@ private:
 	void onJewelsFreshing(float dt);
 	void onJewelsSwapingBack(float dt);
 
-private:
-	//事件响应部分
-	bool onTouchBegan(Touch*, Event*);
-	void onTouchMoved(Touch*, Event*);
-	void onTouchEnded(Touch*, Event*);
-
 public:
 	int getRow() { return m_row; }
 	int getCol() { return m_col; }
@@ -59,15 +59,14 @@ private:
 	int m_row; //行数
 	int m_col; //列数
 
+	Jewel* m_jewelSelected; //当前选择的宝石
+	Jewel* m_jewelSwapped; //欲交换的宝石
+
 	bool m_isSwapOver;
 	bool m_isFreshOver;
 	bool m_isCrushOver;
 
-	Jewel* m_jewelSelected; //当前选中的宝石
-	Jewel* m_startJewel;
-	Jewel* m_touchJewel; 
-
-	vector<vector<Jewel*>> m_JewelsBox; //存放宝石对象的容器
+	vector<vector<Jewel*>> m_JewelsBox; //存放宝石对象的容器，通过坐标索引宝石
 	Vector<Jewel*> m_crushJewelBox; //准备消除的宝石容器
 	Vector<Jewel*> m_newJewelBox; //准备加入布局的宝石的容器
 };

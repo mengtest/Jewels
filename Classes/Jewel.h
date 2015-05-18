@@ -27,6 +27,7 @@ public:
 	void crush(); //消除
 
 private:
+	//类型
 	int m_type;
 
 	//坐标

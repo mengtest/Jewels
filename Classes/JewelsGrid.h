@@ -10,7 +10,7 @@ using namespace std;
 #define GRID_WIDTH 40 //一个格子像素为40
 #define MOVE_SPEED 0.2 //宝石移动一格速度
 #define FIRST_JEWEL_ID 1
-#define LAST_JEWEL_ID 6
+#define LAST_JEWEL_ID 7
 
 class Jewel;
 
@@ -22,38 +22,36 @@ public:
 	bool init(int row, int col);
 
 private:
-	static JewelsGrid* jewelsgrid;
-
+	//关于创建宝石的方法
 	Jewel* addAJewel(int x, int y);
 	bool isJewelLegal(Jewel* jewel, int x, int y);
-	//void clearAllJewels();
+	void setJewelPixPos(Jewel* jewel, float x, float y); //设置其游戏实际像素位置。网格坐标轴以左下角为原点，x右y上为正轴
 
-	//根据对象的x，y轴值，设置其游戏实际像素位置。网格坐标轴以左上角为原点，x右y下为正轴
-	void setJewelPixPos(Jewel* jewel, float x, float y);
-	void swapJewls(Jewel *jewelA, Jewel *jewelB); //交换两个宝石
-	void moveJewelToNewPos(Jewel* jewel); //移动到新位置
+	//关于操作宝石的方法
+	void swapJewels(Jewel *jewelA, Jewel *jewelB); //交换两个宝石
+	void swapJewelToNewPos(Jewel* jewel); //移动到新位置
 
 	void refreshJewelsGrid();
 	void refreshJewelsToNewPos(int startX);
 
-	void stateController(float dt);
-
+private:
+	//游戏逻辑部分
 	void canCrush(); //判断能否crush
-	void goCrush(); //开始cursh
+	void goCrush(); //开始crush
 
+	//捕捉函数，捕捉游戏步骤是否完成
 	void onJewelsSwaping(float dt);
 	void onJewelsCrushing(float dt);
 	void onJewelsFreshing(float dt);
 	void onJewelsSwapingBack(float dt);
 
 private:
+	//事件响应部分
 	bool onTouchBegan(Touch*, Event*);
 	void onTouchMoved(Touch*, Event*);
 	void onTouchEnded(Touch*, Event*);
 
 public:
-	static JewelsGrid* sharedJewelsGrid() { return jewelsgrid; };
-
 	int getRow() { return m_row; }
 	int getCol() { return m_col; }
 
@@ -64,11 +62,6 @@ private:
 	bool m_isSwapOver;
 	bool m_isFreshOver;
 	bool m_isCrushOver;
-
-	int m_state;
-
-	bool m_canCrush;
-	bool m_canSwap;
 
 	Jewel* m_jewelSelected; //当前选中的宝石
 	Jewel* m_startJewel;

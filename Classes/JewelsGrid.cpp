@@ -1,11 +1,9 @@
 #include "JewelsGrid.h"
 #include "Jewel.h"
 
-JewelsGrid* JewelsGrid::jewelsgrid = nullptr;
-
 JewelsGrid* JewelsGrid::create(int row, int col)
 {
-	JewelsGrid::jewelsgrid = new JewelsGrid();
+	auto jewelsgrid = new JewelsGrid();
 	if (jewelsgrid && jewelsgrid->init(row, col))
 	{
 		jewelsgrid->autorelease();
@@ -30,9 +28,6 @@ bool JewelsGrid::init(int row, int col)
 	m_isFreshOver = true;
 	m_isCrushOver = true;
 
-	m_canCrush = false; //一开始是不能crush的
-	m_canSwap = false;
-
 	//根据行列初始化一个空的宝石容器大小
 	m_JewelsBox.resize(m_row);
 	for (auto &vec : m_JewelsBox)
@@ -45,7 +40,6 @@ bool JewelsGrid::init(int row, int col)
 		{
 			//保存对象指针
 			m_JewelsBox[x][y] = addAJewel(x, y); 
-			m_JewelsBox[x][y]->retain();
 		}
 	}
 
@@ -119,9 +113,14 @@ void JewelsGrid::onTouchMoved(Touch* pTouch, Event* pEvent)
 		m_touchJewel = m_JewelsBox[touchX][touchY];
 
 		//交换宝石坐标以及指针
-		swapJewls(m_startJewel, m_touchJewel);
+		swapJewels(m_startJewel, m_touchJewel);
 		schedule(schedule_selector(JewelsGrid::onJewelsSwaping));		
 	}
+}
+
+void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
+{
+	m_jewelSelected = nullptr;
 }
 
 void JewelsGrid::onJewelsFreshing(float dt)
@@ -196,7 +195,7 @@ void JewelsGrid::onJewelsSwapingBack(float dt)
 	}
 }
 
-void JewelsGrid::swapJewls(Jewel *jewelA, Jewel *jewelB)
+void JewelsGrid::swapJewels(Jewel *jewelA, Jewel *jewelB)
 {
 	_eventDispatcher->pauseEventListenersForTarget(this);
 
@@ -215,11 +214,11 @@ void JewelsGrid::swapJewls(Jewel *jewelA, Jewel *jewelB)
 	jewelA->setY(jewelB->getY());
 	jewelB->setY(tempY);
 
-	moveJewelToNewPos(jewelA);
-	moveJewelToNewPos(jewelB);
+	swapJewelToNewPos(jewelA);
+	swapJewelToNewPos(jewelB);
 }
 
-void JewelsGrid::moveJewelToNewPos(Jewel* jewel)
+void JewelsGrid::swapJewelToNewPos(Jewel* jewel)
 {
 	jewel->setSwapingState(true);
 	auto move = MoveTo::create(MOVE_SPEED, Vec2(jewel->getX() * GRID_WIDTH, jewel->getY() * GRID_WIDTH));
@@ -227,11 +226,6 @@ void JewelsGrid::moveJewelToNewPos(Jewel* jewel)
 		jewel->setSwapingState(false);
 	});
 	jewel->runAction(Sequence::create(move, call, nullptr));
-}
-
-void JewelsGrid::onTouchEnded(Touch* pTouch, Event*)
-{
-	m_jewelSelected = nullptr;
 }
 
 void JewelsGrid::refreshJewelsToNewPos(int startX)
@@ -309,16 +303,6 @@ void JewelsGrid::refreshJewelsGrid()
 
 void JewelsGrid::goCrush()
 {
-	/*
-	_eventDispatcher->pauseEventListenersForTarget(this);
-
-	if (m_crushJewelBox.empty())
-	{
-		_eventDispatcher->resumeEventListenersForTarget(this);
-		return;
-	}
-	*/
-
 	for (auto jewel : m_crushJewelBox)
 	{
 		//生成随机新宝石
@@ -421,7 +405,7 @@ void JewelsGrid::canCrush()
 		log("no, cant crush!");
 		if (m_startJewel && m_startJewel)
 		{
-			swapJewls(m_startJewel, m_touchJewel);
+			swapJewels(m_startJewel, m_touchJewel);
 			schedule(schedule_selector(JewelsGrid::onJewelsSwapingBack));
 		}
 		else
@@ -493,15 +477,3 @@ bool JewelsGrid::isJewelLegal(Jewel* jewel, int x, int y)
 
 	return isBackLegal && isUpLegal;
 }
-
-/*
-void JewelsGrid::clearAllJewels()
-{
-	for (int i = 0; i < 8; i++)
-		for (int j = 0; j < 8; j++)
-		{
-			if (m_JewelsBox[i][j])
-				m_JewelsBox[i][j]->removeFromParent();
-		}
-}
-*/

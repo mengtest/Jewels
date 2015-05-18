@@ -13,8 +13,6 @@ bool GameScene::init()
 {
 	Layer::init();
 
-	auto visibleSize = Director::getInstance()->getVisibleSize();
-
 	//预加载宝石的边框
 	TextureCache::getInstance()->addImage("selection.png");
 	//预加载宝石
@@ -25,6 +23,13 @@ bool GameScene::init()
 	TextureCache::getInstance()->addImage("jewel5.png");
 	TextureCache::getInstance()->addImage("jewel6.png");
 	TextureCache::getInstance()->addImage("jewel7.png");
+	//预加载背景图
+	TextureCache::getInstance()->addImage("bground1.png");
+	TextureCache::getInstance()->addImage("bground2.png");
+	TextureCache::getInstance()->addImage("bground3.png");
+	TextureCache::getInstance()->addImage("bground4.png");
+
+	auto visibleSize = Director::getInstance()->getVisibleSize();
 
 	//加载背景图
 	auto bg = Sprite::create("bground1.png");
@@ -38,18 +43,10 @@ bool GameScene::init()
 	board->setOpacity(80);  //满分255
 	addChild(board);
 
-	//初始化网格数据
+	//初始化网格数据，网格的原点在左下角
 	auto grid = JewelsGrid::create(8, 8);
 	addChild(grid);
-	grid->setPosition(0, visibleSize.height - board->getContentSize().height);
-
-	//测试用：重新开始按钮
-	/*
-	auto restarItem = MenuItemFont::create("restart", CC_CALLBACK_0(GameScene::initGrid, this));
-	restarItem->setPositionY(-100);
-	auto menu = Menu::create(restarItem, nullptr);
-	addChild(menu);
-	*/
+	grid->setPosition(0, visibleSize.height - grid->getRow() * GRID_WIDTH);
 
 	return true;
 }

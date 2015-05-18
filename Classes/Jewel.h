@@ -8,7 +8,7 @@ USING_NS_CC;
 class Jewel : public Sprite
 {
 public:
-	static Jewel* createByType(int type, int x, int y);
+	static Jewel* createByType(int type, int x, int y); //根据宝石类型以及坐标创建宝石
 	bool init(int type, int x, int y);
 
 public:
@@ -17,32 +17,25 @@ public:
 	int getY() { return m_y; }
 	bool getCrushOverState() { return m_isCrushOver; }
 	bool getFreshOverState() { return m_isFreshOver; }
-	bool getIsEmpty() { return m_isEmpty; }
 	bool getSwapingState() { return m_isSwaping; }
 
 	void setX(int x) { m_x = x; }
 	void setY(int y) { m_y = y; }
 	void setSwapingState(bool state) { m_isSwaping = state; }
 	void setFreshOverState(bool state) { m_isFreshOver = state; }
-	void setIsEmpty(bool state) { m_isEmpty = state; }
-
-	void showSelection(); //显现边框
-	void hideSelection(); //隐藏边框
 
 	void crush(); //消除
 
 private:
 	int m_type;
-	Sprite* m_selection; //触摸宝石上面显示的边框
 
 	//坐标
 	int m_x;
 	int m_y;
 
 	bool m_isSwaping; //是否正在交换
-	bool m_isEmpty; //该格子是否空
 	bool m_isCrushOver; //是否消除完成
-	bool m_isFreshOver; 
+	bool m_isFreshOver; //是否刷新完成
 };
 
 #endif

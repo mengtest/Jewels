@@ -9,17 +9,17 @@ using namespace std;
 
 #define GRID_WIDTH 40 //一个格子像素为40
 #define MOVE_SPEED 0.2 //宝石移动一格速度
-#define FIRST_JEWEL_ID 1
-#define LAST_JEWEL_ID 7
+#define FIRST_JEWEL_ID 1 //第一个宝石的ID，宝石ID默认依次递增的
+#define LAST_JEWEL_ID 5 //最后一个宝石的ID
 
 class Jewel;
 
-//网格类，包含了宝石在网格内的逻辑
+//布局类，包含了宝石在布局内的逻辑
 //该网格布局坐标以左下角为原点，x左y上为正方向
 class JewelsGrid : public Node
 {
 public:
-	static JewelsGrid* create(int row, int col); //根据行跟列创建网格
+	static JewelsGrid* create(int row, int col); //根据行跟列创建布局
 	bool init(int row, int col);
 
 private:
@@ -32,8 +32,8 @@ private:
 	void swapJewels(Jewel *jewelA, Jewel *jewelB); //交换两个宝石
 	void swapJewelToNewPos(Jewel* jewel); //移动到新位置
 
-	void refreshJewelsGrid();
-	void refreshJewelsToNewPos(int startX);
+	void refreshJewelsGrid(); //刷新消除后的宝石阵列
+	void refreshJewelsToNewPos(int col); //刷新一列宝石
 
 private:
 	//事件响应部分
@@ -42,14 +42,14 @@ private:
 
 private:
 	//游戏逻辑部分
-	void canCrush(); //判断能否crush
+	bool canCrush(); //判断当前状态的宝石阵列是否能消除
 	void goCrush(); //开始crush
 
-	//捕捉函数，捕捉游戏步骤是否完成
+	//捕捉函数，捕捉消除步骤是否完成，然后控制消除流程
 	void onJewelsSwaping(float dt);
-	void onJewelsCrushing(float dt);
-	void onJewelsFreshing(float dt);
 	void onJewelsSwapingBack(float dt);
+	void onJewelsCrushing(float dt);
+	void onJewelsRefreshing(float dt);
 
 public:
 	int getRow() { return m_row; }
@@ -61,10 +61,6 @@ private:
 
 	Jewel* m_jewelSelected; //当前选择的宝石
 	Jewel* m_jewelSwapped; //欲交换的宝石
-
-	bool m_isSwapOver;
-	bool m_isFreshOver;
-	bool m_isCrushOver;
 
 	vector<vector<Jewel*>> m_JewelsBox; //存放宝石对象的容器，通过坐标索引宝石
 	Vector<Jewel*> m_crushJewelBox; //准备消除的宝石容器

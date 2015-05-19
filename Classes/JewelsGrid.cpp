@@ -1,5 +1,8 @@
 #include "JewelsGrid.h"
 #include "Jewel.h"
+#include "SimpleAudioEngine.h"
+
+using namespace CocosDenshion;
 
 JewelsGrid* JewelsGrid::create(int row, int col)
 {
@@ -506,6 +509,7 @@ void JewelsGrid::onJewelsSwaping(float dt)
 			m_jewelSelected = nullptr;
 
 			//开始消除，开启消除状态捕捉函数(捕捉到消除完毕后，刷新布局)，这一轮消除正式开始
+			SimpleAudioEngine::getInstance()->playEffect("crush.ogg");
 			goCrush();
 			schedule(schedule_selector(JewelsGrid::onJewelsCrushing));
 		}
@@ -514,6 +518,7 @@ void JewelsGrid::onJewelsSwaping(float dt)
 			log("no, cant crush!");
 
 			//不能消除，交换回去，开启交换返回时的捕捉函数(捕捉到消除完毕后，开启触摸接听)
+			SimpleAudioEngine::getInstance()->playEffect("swapback.ogg");
 			swapJewels(m_jewelSelected, m_jewelSwapped);
 			schedule(schedule_selector(JewelsGrid::onJewelsSwapingBack));
 		}
@@ -584,6 +589,7 @@ void JewelsGrid::onJewelsRefreshing(float dt)
 			log("yes, crush again!");
 
 			//如果能消除，那么继续消除
+			SimpleAudioEngine::getInstance()->playEffect("crush.ogg");
 			goCrush();
 			schedule(schedule_selector(JewelsGrid::onJewelsCrushing));
 		}

@@ -29,6 +29,8 @@ private:
 
 	void onReducingBonus(float dt); //开启倒计时
 
+	void publishScore(); //存储游戏分数
+
 	JewelsGrid* m_jewelsgrid;
 	Sprite* m_bg;
 };

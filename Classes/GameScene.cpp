@@ -1,5 +1,6 @@
 #include "GameScene.h"
 #include "JewelsGrid.h"
+#include "GameOverScene.h"
 
 Scene* GameScene::createScene()
 {
@@ -17,36 +18,18 @@ bool GameScene::init()
 {
 	Layer::init();
 
-	//预加载宝石的边框
-	TextureCache::getInstance()->addImage("selection.png");
-	//预加载宝石
-	TextureCache::getInstance()->addImage("jewel1.png");
-	TextureCache::getInstance()->addImage("jewel2.png");
-	TextureCache::getInstance()->addImage("jewel3.png");
-	TextureCache::getInstance()->addImage("jewel4.png");
-	TextureCache::getInstance()->addImage("jewel5.png");
-	TextureCache::getInstance()->addImage("jewel6.png");
-	TextureCache::getInstance()->addImage("jewel7.png");
-	//预加载背景图
-	TextureCache::getInstance()->addImage("bground1.png");
-	TextureCache::getInstance()->addImage("bground2.png");
-	TextureCache::getInstance()->addImage("bground3.png");
-	TextureCache::getInstance()->addImage("bground4.png");
-
-	TextureCache::getInstance()->addImage("bonusbar.png");
-	TextureCache::getInstance()->addImage("bonusbar_fill.png");
-	TextureCache::getInstance()->addImage("bonus.png");
-
 	auto visibleSize = Director::getInstance()->getVisibleSize();
 
+	auto texturecache = TextureCache::getInstance();
+
 	//加载背景图
-	m_bg = Sprite::create("bground1.png");
+	m_bg = Sprite::createWithTexture(texturecache->getTextureForKey("bground1.png"));
 	m_bg->setAnchorPoint(Vec2(0, 0));
 	m_bg->setTag(100); //1-4个bg的tag默认设置为100，101，102，103
 	addChild(m_bg);
 
 	//网格背景
-	auto board = Sprite::create("board.png");
+	auto board = Sprite::createWithTexture(texturecache->getTextureForKey("board.png"));
 	board->setAnchorPoint(Vec2(0, 1));
 	board->setPosition(Vec2(0, visibleSize.height));
 	board->setOpacity(80);  //满分255
@@ -58,11 +41,11 @@ bool GameScene::init()
 	m_jewelsgrid->setPosition(0, visibleSize.height - m_jewelsgrid->getRow() * GRID_WIDTH);
 
 	//倒计时条外框
-	auto bounusbar_frame = Sprite::create("bonusbar.png");
+	auto bounusbar_frame = Sprite::createWithTexture(texturecache->getTextureForKey("bonusbar.png"));
 	bounusbar_frame->setPosition(Vec2(visibleSize.width / 2, bounusbar_frame->getContentSize().height / 2 + 10));
 	addChild(bounusbar_frame);
 
-	//倒计时条
+	//倒计时条bonusbar_fill.png
 	m_bonusbar = LoadingBar::create("bonusbar_fill.png");
 	m_bonusbar->setPercent(100);
 	m_bonusbar->setPosition(bounusbar_frame->getPosition());
@@ -71,7 +54,7 @@ bool GameScene::init()
 	schedule(schedule_selector(GameScene::onReducingBonus), 0.1);
 
 	//分数条
-	auto bonus = Sprite::create("bonus.png");
+	auto bonus = Sprite::createWithTexture(texturecache->getTextureForKey("bonus.png"));
 	bonus->setPosition(visibleSize.width - bonus->getContentSize().width / 2 - 10, 80);
 	addChild(bonus);
 
@@ -96,9 +79,38 @@ bool GameScene::init()
 	return true;
 }
 
+void GameScene::publishScore()
+{
+	auto userdefault = UserDefault::getInstance();
+	
+	//查看路径，测试用
+	log(userdefault->getXMLFilePath().c_str()); 
+	
+	//存储本次游戏分数
+	char score_str[100] = {0};
+	sprintf(score_str, "%d", m_score);
+	userdefault->setStringForKey("LastScore", score_str);
+
+	//存储最佳游戏分数
+	auto bestscore = userdefault->getStringForKey("BestScore");
+	if (m_score > atoi(bestscore.c_str()))
+		userdefault->setStringForKey("BestScore", score_str);
+}
+
 void GameScene::onReducingBonus(float dt)
 {
 	m_bonusbar->setPercent(m_bonusbar->getPercent()-0.2);
+
+	//倒计时结束，游戏结束，保存游戏分数
+	if (m_bonusbar->getPercent() == 0)
+	{
+		unschedule(schedule_selector(GameScene::onReducingBonus));
+
+		log("game over!");
+		publishScore();
+		auto scene = GameOverScene::createScene();
+		Director::getInstance()->replaceScene(TransitionFade::create(1.0, scene));
+	}
 
 	auto fadein = FadeIn::create(0.1);
 	auto fadeout = FadeOut::create(0.1);

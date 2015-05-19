@@ -1,5 +1,5 @@
 #include "AppDelegate.h"
-#include "GameScene.h"
+#include "LoadingScene.h"
 
 USING_NS_CC;
 
@@ -33,7 +33,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
 
     director->setAnimationInterval(1.0 / 60);
 
-    auto scene = GameScene::createScene();
+    auto scene = LoadingScene::createScene();
 
     director->runWithScene(scene);
 

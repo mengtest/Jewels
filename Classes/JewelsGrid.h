@@ -8,9 +8,9 @@ USING_NS_CC;
 using namespace std;
 
 #define GRID_WIDTH 40 //一个格子像素为40
-#define MOVE_SPEED 0.2 //宝石移动一格速度
+#define MOVE_SPEED 0.2 //宝石移动速度
 #define FIRST_JEWEL_ID 1 //第一个宝石的ID，宝石ID默认依次递增的
-#define LAST_JEWEL_ID 5 //最后一个宝石的ID
+#define LAST_JEWEL_ID 7 //最后一个宝石的ID
 
 class Jewel;
 
@@ -21,6 +21,9 @@ class JewelsGrid : public Node
 public:
 	static JewelsGrid* create(int row, int col); //根据行跟列创建布局
 	bool init(int row, int col);
+
+	void updateMap(); //更新宝石阵列
+	bool isDeadMap(); //判断当前布局是否死图（无论如何也不能消除）
 
 private:
 	//关于创建宝石的方法

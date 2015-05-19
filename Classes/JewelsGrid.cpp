@@ -37,11 +37,16 @@ bool JewelsGrid::init(int row, int col)
 	{
 		for (int y = 0; y < m_row; y++)
 		{
-			//创建一颗宝石，并保存其指针到宝石盒子中
 			m_JewelsBox[x][y] = createAJewel(x, y); 
 		}
 	}
 
+	while (isDeadMap())
+	{
+		log("dead map! need to update");
+		updateMap();
+	}
+	
 	//加入触摸监听
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
@@ -52,6 +57,81 @@ bool JewelsGrid::init(int row, int col)
 
 	log("JewelsGrid init!");
 	return true;
+}
+
+void JewelsGrid::updateMap()
+{
+	for (int x = 0; x < m_col; x++)
+	{
+		for (int y = 0; y < m_row; y++)
+		{
+			m_JewelsBox[x][y]->removeFromParent();
+			m_JewelsBox[x][y] = createAJewel(x, y); 
+		}
+	}
+
+	log("update a new map!");
+}
+
+bool JewelsGrid::isDeadMap()
+{
+	//模拟交换，判断交换后是否能消除，如不能，那么就是个死图
+	auto swap = [](Jewel** a, Jewel** b)
+	{
+		auto temp = *a;
+		*a = *b;
+		*b = temp;
+	};
+
+	bool isDeadMap = true;
+
+	//遍历每一颗宝石
+	for (int x = 0; x < m_col; x++)
+	{
+		for (int y = 0; y < m_row; y++)
+		{
+			//跟左边的交换
+			if (x > 0)
+			{
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x-1][y]);
+				if (canCrush())
+					isDeadMap = false;
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x-1][y]);
+			}
+
+			//跟右边的交换
+			if (x < m_col - 1)
+			{
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x+1][y]);
+				if (canCrush())
+					isDeadMap = false;
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x+1][y]);
+			}
+
+			//跟上面的交换
+			if (y < m_row - 1)
+			{
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x][y+1]);
+				if (canCrush())
+					isDeadMap = false;
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x][y+1]);
+			}
+
+			//跟下面的交换
+			if (y > 0)
+			{
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x][y-1]);
+				if (canCrush())
+					isDeadMap = false;
+				swap(&m_JewelsBox[x][y], &m_JewelsBox[x][y-1]);
+			}
+		}
+	}
+
+	//canCrush会存储能消除的宝石进去，由于是模拟交换，所以还要清空
+	m_crushJewelBox.clear();
+
+	return isDeadMap;
 }
 
 Jewel* JewelsGrid::createAJewel(int x, int y)
@@ -511,9 +591,40 @@ void JewelsGrid::onJewelsRefreshing(float dt)
 		{
 			log("no, cant crush! over!");
 
-			//如不能消除，那么开启触摸监听，这一轮消除旅程正式结束
-			_eventDispatcher->resumeEventListenersForTarget(this);
+			//判断是否为死图，如果是，则执行一段文字动画，提示即将更新地图
+			if (isDeadMap())
+			{
+				log("cant crush any more, updating a new map!");
+
+				auto winSize = Director::getInstance()->getWinSize();
+				auto label = Label::createWithTTF("Cant Crush Any More, Change!", "fonts/Marker Felt.ttf", 24);
+				label->setTextColor(Color4B::BLACK);
+				label->setPosition(winSize.width / 2, winSize.height / 2);
+				label->setOpacity(0);
+				this->getParent()->addChild(label);
+
+				//提示文字淡入淡出后，更新地图，再开启触摸监听
+				auto fadein = FadeIn::create(0.5);
+				auto fadeout = FadeOut::create(0.5);
+
+				auto call = CallFunc::create([this, label](){
+					do
+					{
+						updateMap();
+					} while (isDeadMap());
+
+					label->removeFromParent();
+
+					_eventDispatcher->resumeEventListenersForTarget(this);
+				});
+
+				label->runAction(Sequence::create(fadein, DelayTime::create(2), fadeout, call, nullptr));
+			}
+			else
+			{
+				//如果不是死图，那么就直接开启触摸监听，等待下一轮的交互操作
+				_eventDispatcher->resumeEventListenersForTarget(this);
+			}
 		}
 	}
 }
-

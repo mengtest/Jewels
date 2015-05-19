@@ -1,5 +1,5 @@
 #include "Jewel.h"
-#include "JewelsGrid.h"
+#include "GameScene.h"
 
 Jewel* Jewel::createByType(int type, int x, int y)
 {
@@ -39,6 +39,9 @@ bool Jewel::init(int type, int x, int y)
 
 void Jewel::crush()
 {
+	//加分
+	GameScene::addBonus(1);
+
 	//开始消除，消除状态为真，直到消除动作结束，将宝石移除渲染节点，并置消除状态为假
 	m_isCrushing = true;
 	auto action = FadeOut::create(0.2);

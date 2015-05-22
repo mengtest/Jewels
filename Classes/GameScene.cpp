@@ -18,6 +18,8 @@ bool GameScene::init()
 {
 	Layer::init();
 
+	m_score = 0;
+
 	auto visibleSize = Director::getInstance()->getVisibleSize();
 
 	auto texturecache = TextureCache::getInstance();
